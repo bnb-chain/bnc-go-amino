@@ -13,11 +13,16 @@ import (
 // Signed
 
 func EncodeInt8(w io.Writer, i int8) (err error) {
-	return EncodeVarint(w, int64(i))
+	var buf = []byte{byte(i)}
+	_, err = w.Write(buf[:])
+	return
 }
 
 func EncodeInt16(w io.Writer, i int16) (err error) {
-	return EncodeVarint(w, int64(i))
+	var buf [2]byte
+	binary.LittleEndian.PutUint16(buf[:], uint16(i))
+	_, err = w.Write(buf[:])
+	return
 }
 
 func EncodeInt32(w io.Writer, i int32) (err error) {
@@ -32,19 +37,6 @@ func EncodeInt64(w io.Writer, i int64) (err error) {
 	binary.LittleEndian.PutUint64(buf[:], uint64(i))
 	_, err = w.Write(buf[:])
 	return err
-}
-
-func EncodeVarint(w io.Writer, i int64) (err error) {
-	var buf [10]byte
-	n := binary.PutVarint(buf[:], i)
-	_, err = w.Write(buf[0:n])
-	return
-}
-
-func VarintSize(i int64) int {
-	var buf [10]byte
-	n := binary.PutVarint(buf[:], i)
-	return n
 }
 
 //----------------------------------------
