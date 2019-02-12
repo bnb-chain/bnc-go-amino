@@ -1,8 +1,9 @@
 package amino_test
 
 import (
+	"bufio"
 	"bytes"
-	"encoding/binary"
+	"math"
 	"strings"
 	"testing"
 	"time"
@@ -102,7 +103,7 @@ func TestDecodeInt8(t *testing.T) {
 	// sure that all the values out of the range of [-128, 127]
 	// return an error.
 	tests := []struct {
-		in      int64
+		in      int8
 		wantErr string
 		want    int8
 	}{
@@ -110,17 +111,18 @@ func TestDecodeInt8(t *testing.T) {
 		{in: -0x7F, want: -0x7F},
 		{in: -0x80, want: -0x80},
 		{in: 0x10, want: 0x10},
-
-		{in: -0xFF, wantErr: "decoding int8"},
-		{in: 0xFF, wantErr: "decoding int8"},
-		{in: 0x100, wantErr: "decoding int8"},
-		{in: -0x100, wantErr: "decoding int8"},
+		{in: math.MinInt8, want: math.MinInt8},
+		{in: math.MaxInt8, want: math.MaxInt8},
 	}
 
-	buf := make([]byte, 10)
 	for i, tt := range tests {
-		n := binary.PutVarint(buf, tt.in)
-		gotI8, gotN, err := amino.DecodeInt8(buf[:n])
+		var buf bytes.Buffer
+		w := bufio.NewWriter(&buf)
+		if err := amino.EncodeInt8(w, tt.in); err != nil {
+			panic(err)
+		}
+		w.Flush()
+		gotI8, gotN, err := amino.DecodeInt8(buf.Bytes())
 		if tt.wantErr != "" {
 			if err == nil {
 				t.Errorf("#%d expected error=%q", i, tt.wantErr)
@@ -129,16 +131,14 @@ func TestDecodeInt8(t *testing.T) {
 			}
 			continue
 		}
-
 		if err != nil {
 			t.Errorf("#%d unexpected error: %v", i, err)
 			continue
 		}
-
 		if wantI8 := tt.want; gotI8 != wantI8 {
 			t.Errorf("#%d gotI8=%d wantI8=%d", i, gotI8, wantI8)
 		}
-		if wantN := n; gotN != wantN {
+		if wantN := 1; gotN != wantN {
 			t.Errorf("#%d gotN=%d wantN=%d", i, gotN, wantN)
 		}
 	}
@@ -149,7 +149,7 @@ func TestDecodeInt16(t *testing.T) {
 	// sure that all the values out of the range of [-32768, 32767]
 	// return an error.
 	tests := []struct {
-		in      int64
+		in      int16
 		wantErr string
 		want    int16
 	}{
@@ -158,17 +158,18 @@ func TestDecodeInt16(t *testing.T) {
 		{in: -0x7F, want: -0x7F},
 		{in: -0x80, want: -0x80},
 		{in: 0x10, want: 0x10},
-
-		{in: -0xFFFF, wantErr: "decoding int16"},
-		{in: 0xFFFF, wantErr: "decoding int16"},
-		{in: 0x10000, wantErr: "decoding int16"},
-		{in: -0x10000, wantErr: "decoding int16"},
+		{in: math.MinInt16, want: math.MinInt16},
+		{in: math.MaxInt16, want: math.MaxInt16},
 	}
 
-	buf := make([]byte, 10)
 	for i, tt := range tests {
-		n := binary.PutVarint(buf, tt.in)
-		gotI16, gotN, err := amino.DecodeInt16(buf[:n])
+		var buf bytes.Buffer
+		w := bufio.NewWriter(&buf)
+		if err := amino.EncodeInt16(w, tt.in); err != nil {
+			panic(err)
+		}
+		w.Flush()
+		gotI16, gotN, err := amino.DecodeInt16(buf.Bytes())
 		if tt.wantErr != "" {
 			if err == nil {
 				t.Errorf("#%d in=(%X) expected error=%q", i, tt.in, tt.wantErr)
@@ -177,16 +178,14 @@ func TestDecodeInt16(t *testing.T) {
 			}
 			continue
 		}
-
 		if err != nil {
 			t.Errorf("#%d unexpected error: %v", i, err)
 			continue
 		}
-
 		if wantI16 := tt.want; gotI16 != wantI16 {
 			t.Errorf("#%d gotI16=%d wantI16=%d", i, gotI16, wantI16)
 		}
-		if wantN := n; gotN != wantN {
+		if wantN := 2; gotN != wantN {
 			t.Errorf("#%d gotN=%d wantN=%d", i, gotN, wantN)
 		}
 	}

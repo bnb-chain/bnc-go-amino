@@ -12,30 +12,24 @@ import (
 // Signed
 
 func DecodeInt8(bz []byte) (i int8, n int, err error) {
-	var i64 = int64(0)
-	i64, n, err = DecodeVarint(bz)
-	if err != nil {
-		return
-	}
-	if i64 < int64(math.MinInt8) || i64 > int64(math.MaxInt8) {
+	const size int = 1
+	if len(bz) < size {
 		err = errors.New("EOF decoding int8")
 		return
 	}
-	i = int8(i64)
+	i = int8(bz[0])
+	n = size
 	return
 }
 
 func DecodeInt16(bz []byte) (i int16, n int, err error) {
-	var i64 = int64(0)
-	i64, n, err = DecodeVarint(bz)
-	if err != nil {
-		return
-	}
-	if i64 < int64(math.MinInt16) || i64 > int64(math.MaxInt16) {
+	const size int = 2
+	if len(bz) < size {
 		err = errors.New("EOF decoding int16")
 		return
 	}
-	i = int16(i64)
+	i = int16(binary.LittleEndian.Uint16(bz[:size]))
+	n = size
 	return
 }
 
@@ -78,10 +72,6 @@ func DecodeVarint(bz []byte) (i int64, n int, err error) {
 //----------------------------------------
 // Unsigned
 
-func DecodeByte(bz []byte) (b byte, n int, err error) {
-	return DecodeUint8(bz)
-}
-
 func DecodeUint8(bz []byte) (u uint8, n int, err error) {
 	var u64 = uint64(0)
 	u64, n, err = DecodeUvarint(bz)
@@ -95,6 +85,7 @@ func DecodeUint8(bz []byte) (u uint8, n int, err error) {
 	u = uint8(u64)
 	return
 }
+
 func DecodeUint16(bz []byte) (u uint16, n int, err error) {
 	var u64 = uint64(0)
 	u64, n, err = DecodeUvarint(bz)
