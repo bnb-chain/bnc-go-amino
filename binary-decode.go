@@ -18,9 +18,9 @@ var (
 )
 
 const (
-	// architecture dependent int limits:
-	maxInt = int(^uint(0) >> 1)
-	minInt = -maxInt - 1
+	// architecture dependent int limits. int64 cast implies a limit of 64-bits (reasonable)
+	maxInt = int64(int(^uint(0) >> 1))
+	minInt = int64(-maxInt - 1)
 )
 
 // This is the main entrypoint for decoding all types from binary form. This
@@ -77,7 +77,12 @@ func (cdc *Codec) decodeReflectBinary(bz []byte, info *TypeInfo, rv reflect.Valu
 		return
 	}
 
-	switch info.Type.Kind() {
+	// used below to track int8/int16/int32/int64 min/max for range checks
+	minIntxBound := minInt
+	maxIntxBound := maxInt
+
+	kind := info.Type.Kind()
+	switch kind {
 
 	//----------------------------------------
 	// Complex
@@ -118,76 +123,83 @@ func (cdc *Codec) decodeReflectBinary(bz []byte, info *TypeInfo, rv reflect.Valu
 	// Signed
 
 	case reflect.Int64:
-		var num int64
+		minIntxBound = math.MinInt64
+		maxIntxBound = math.MaxInt64
 		if fopts.BinFixed64 {
+			var num int64
 			num, _n, err = DecodeInt64(bz)
 			if slide(&bz, &n, _n) && err != nil {
 				return
 			}
 			rv.SetInt(num)
-		} else {
-			var u64 uint64
-			u64, _n, err = DecodeUvarint(bz)
-			if slide(&bz, &n, _n) && err != nil {
-				return
-			}
-			rv.SetInt(int64(u64))
+			return
 		}
-		return
+		fallthrough
 
 	case reflect.Int32:
-		if fopts.BinFixed32 {
-			var num int32
-			num, _n, err = DecodeInt32(bz)
-			if slide(&bz, &n, _n) && err != nil {
+		if reflect.Int32 == kind { // check for fallthrough
+			minIntxBound = math.MinInt32
+			maxIntxBound = math.MaxInt32
+			if fopts.BinFixed32 {
+				var num int32
+				num, _n, err = DecodeInt32(bz)
+				if slide(&bz, &n, _n) && err != nil {
+					return
+				}
+				rv.SetInt(int64(num))
 				return
 			}
-			rv.SetInt(int64(num))
-		} else {
-			var num uint64
-			num, _n, err = DecodeUvarint(bz)
-			if slide(&bz, &n, _n) && err != nil {
-				return
-			}
-			if int64(num) > math.MaxInt32 || int64(num) < math.MinInt32 {
-				err = ErrOverflowInt
-				return
-			}
-			rv.SetInt(int64(num))
 		}
-		return
+		fallthrough
 
 	case reflect.Int16:
-		var num int16
-		num, _n, err = DecodeInt16(bz)
-		if slide(&bz, &n, _n) && err != nil {
-			return
+		if reflect.Int16 == kind { // check for fallthrough
+			minIntxBound = math.MinInt16
+			maxIntxBound = math.MaxInt16
+			if fopts.BinFixed16 {
+				var num int16
+				num, _n, err = DecodeInt16(bz)
+				if slide(&bz, &n, _n) && err != nil {
+					return
+				}
+				rv.SetInt(int64(num))
+				return
+			}
 		}
-		rv.SetInt(int64(num))
-		return
+		fallthrough
 
 	case reflect.Int8:
-		var num int8
-		num, _n, err = DecodeInt8(bz)
-		if slide(&bz, &n, _n) && err != nil {
-			return
+		if reflect.Int8 == kind { // check for fallthrough
+			minIntxBound = math.MinInt8
+			maxIntxBound = math.MaxInt8
+			if fopts.BinFixed8 {
+				var num int8
+				num, _n, err = DecodeInt8(bz)
+				if slide(&bz, &n, _n) && err != nil {
+					return
+				}
+				rv.SetInt(int64(num))
+				return
+			}
 		}
-		rv.SetInt(int64(num))
-		return
+		fallthrough
 
+	// int8, int16, int32 and int64 all fall through to here,
+	// to be decoded from UVarInt.
 	case reflect.Int:
+		// default minIntxBound is already minInt, likewise for max.
 		var num uint64
 		num, _n, err = DecodeUvarint(bz)
 		if slide(&bz, &n, _n) && err != nil {
 			return
 		}
-		if int64(num) > int64(maxInt) || int64(num) < int64(minInt) {
+		if int64(num) > maxIntxBound || int64(num) < minIntxBound {
 			err = ErrOverflowInt
 			return
 		}
 		rv.SetInt(int64(num))
 		return
-
+		
 	//----------------------------------------
 	// Unsigned
 
