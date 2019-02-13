@@ -39,6 +39,19 @@ func EncodeInt64(w io.Writer, i int64) (err error) {
 	return err
 }
 
+func EncodeVarint(w io.Writer, i int64) (err error) {
+	var buf [10]byte
+	n := binary.PutVarint(buf[:], i)
+	_, err = w.Write(buf[0:n])
+	return
+}
+
+func VarintSize(i int64) int {
+	var buf [10]byte
+	n := binary.PutVarint(buf[:], i)
+	return n
+}
+
 //----------------------------------------
 // Unsigned
 
