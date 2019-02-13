@@ -115,6 +115,8 @@ type FieldOptions struct {
 	JSONOmitEmpty bool   // (JSON) omitempty
 	BinFixed64    bool   // (Binary) Encode as fixed64
 	BinFixed32    bool   // (Binary) Encode as fixed32
+	BinFixed16    bool   // (Binary) Encode as fixed16
+	BinFixed8     bool   // (Binary) Encode as fixed8
 	BinFieldNum   uint32 // (Binary) max 1<<29-1
 
 	Unsafe        bool // e.g. if this field is a float.

@@ -97,10 +97,18 @@ func (cdc *Codec) encodeReflectBinary(w io.Writer, info *TypeInfo, rv reflect.Va
 		}
 
 	case reflect.Int16:
-		err = EncodeInt16(w, int16(rv.Int()))
+		if fopts.BinFixed16 {
+			err = EncodeInt16(w, int16(rv.Int()))
+		} else {
+			err = EncodeUvarint(w, uint64(rv.Int()))
+		}
 
 	case reflect.Int8:
-		err = EncodeInt8(w, int8(rv.Int()))
+		if fopts.BinFixed8 {
+			err = EncodeInt8(w, int8(rv.Int()))
+		} else {
+			err = EncodeUvarint(w, uint64(rv.Int()))
+		}
 
 	case reflect.Int:
 		err = EncodeUvarint(w, uint64(rv.Int()))
