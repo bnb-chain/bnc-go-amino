@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.14.1-binance.0 (February 13, 2019)
+
+BREAKING CHANGE:
+ - Switch default encoding of (`int8`, `int16`) to use uvarint encoding, which follows how `int`, `int32` and `int64` are encoded by default. This way SDKs do not need to know the go data type of an int to read/write its value.
+ - Add `BinFixed8` and `BinFixed16` field options.
+
 ## 0.14.1 (November 6, 2018)
 
 IMPROVEMENTS:
