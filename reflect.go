@@ -102,8 +102,8 @@ func derefPointersZero(rv reflect.Value) (drv reflect.Value, isPtr bool, isNilPt
 // dereferenced value.
 // A zero/empty struct is not considered default for this
 // function.
-func isDefaultValue(rv reflect.Value) (erv reflect.Value, isDefaultValue bool) {
-	rv, _, isNilPtr := derefPointers(rv)
+func isDefaultValue(rv reflect.Value) (erv reflect.Value, isDefault bool) {
+	rv, isPtr, isNilPtr := derefPointers(rv)
 	if isNilPtr {
 		return rv, true
 	} else {
@@ -120,6 +120,18 @@ func isDefaultValue(rv reflect.Value) (erv reflect.Value, isDefaultValue bool) {
 			return rv, rv.IsNil() || rv.Len() == 0
 		case reflect.Func, reflect.Interface:
 			return rv, rv.IsNil()
+		case reflect.Struct:
+			if isPtr || rv.Type() == timeType {
+				return rv, false
+			}
+			nFields := rv.NumField()
+			for i:=0; i<nFields; i++ {
+				frv := rv.Field(i)
+				if _, isDefault := isDefaultValue(frv); !isDefault {
+					return rv, false
+				}
+			}
+			return rv, true
 		default:
 			return rv, false
 		}

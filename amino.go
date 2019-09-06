@@ -196,26 +196,30 @@ func (cdc *Codec) MarshalBinaryBare(o interface{}) ([]byte, error) {
 	}
 
 	// Encode Amino:binary bytes.
-	var bz []byte
-	buf := new(bytes.Buffer)
 	rt := rv.Type()
 	info, err := cdc.getTypeInfo_wlock(rt)
 	if err != nil {
 		return nil, err
 	}
+	size, err := cdc.sizeBinary(info, rv, FieldOptions{BinFieldNum: 1}, true)
+	if err != nil {
+		return nil, err
+	}
+	buf := new(bytes.Buffer)
+	if info.Registered {
+		pb := info.Prefix.Bytes()
+		buf.Grow(PrefixBytesLen + size)
+		buf.Write(pb)
+	} else {
+		buf.Grow(size)
+	}
+
 	err = cdc.encodeReflectBinary(buf, info, rv, FieldOptions{BinFieldNum: 1}, true)
 	if err != nil {
 		return nil, err
 	}
-	bz = buf.Bytes()
 
-	// If registered concrete, prepend prefix bytes.
-	if info.Registered {
-		pb := info.Prefix.Bytes()
-		bz = append(pb, bz...)
-	}
-
-	return bz, nil
+	return buf.Bytes(), nil
 }
 
 // Panics if error.

@@ -1,8 +1,9 @@
 package amino_test
 
 import (
-	"bufio"
 	"bytes"
+	"fmt"
+	"github.com/stretchr/testify/require"
 	"math"
 	"strings"
 	"testing"
@@ -32,6 +33,7 @@ func TestMarshalUnmarshalBinaryPointer0(t *testing.T) {
 	var s = newSimpleStruct()
 	cdc := amino.NewCodec()
 	b, err := cdc.MarshalBinaryLengthPrefixed(s) // no indirection
+	t.Log(b)
 	assert.Nil(t, err)
 
 	var s2 SimpleStruct
@@ -116,13 +118,13 @@ func TestDecodeInt8(t *testing.T) {
 	}
 
 	for i, tt := range tests {
-		var buf bytes.Buffer
-		w := bufio.NewWriter(&buf)
-		if err := amino.EncodeInt8(w, tt.in); err != nil {
+		var w bytes.Buffer
+		//w := bufio.NewWriter(&buf)
+		if err := amino.EncodeInt8(&w, tt.in); err != nil {
 			panic(err)
 		}
-		w.Flush()
-		gotI8, gotN, err := amino.DecodeInt8(buf.Bytes())
+		//w.Flush()
+		gotI8, gotN, err := amino.DecodeInt8(w.Bytes())
 		if tt.wantErr != "" {
 			if err == nil {
 				t.Errorf("#%d expected error=%q", i, tt.wantErr)
@@ -164,11 +166,11 @@ func TestDecodeInt16(t *testing.T) {
 
 	for i, tt := range tests {
 		var buf bytes.Buffer
-		w := bufio.NewWriter(&buf)
-		if err := amino.EncodeInt16(w, tt.in); err != nil {
+		//w := bufio.NewWriter(&buf)
+		if err := amino.EncodeInt16(&buf, tt.in); err != nil {
 			panic(err)
 		}
-		w.Flush()
+		//w.Flush()
 		gotI16, gotN, err := amino.DecodeInt16(buf.Bytes())
 		if tt.wantErr != "" {
 			if err == nil {
@@ -246,4 +248,54 @@ func TestCodecSeal(t *testing.T) {
 
 	assert.Panics(t, func() { cdc.RegisterInterface((*Bar)(nil), nil) })
 	assert.Panics(t, func() { cdc.RegisterConcrete(int(0), "int", nil) })
+}
+
+
+type Outer struct {
+	A []byte
+	I *Inner
+	S string
+}
+
+type Inner struct {
+	In int64
+}
+
+
+func TestCodec_Bytes(t *testing.T) {
+	cdc := amino.NewCodec()
+	// cdc.RegisterConcrete(&TT{}, "tt", nil)
+	aa := make([]byte, 10)
+	o := Outer {
+		A: aa,
+		I: &Inner{},
+		S: "1",
+	}
+
+	bz, err := cdc.MarshalBinaryBare(o)
+	require.NoError(t, err)
+	t.Log(bz)
+
+	var o2 Outer
+	err = cdc.UnmarshalBinaryBare(bz, &o2)
+	require.NoError(t, err)
+	require.Equal(t, o, o2)
+}
+
+func TestCodec_Bytes2(t *testing.T) {
+
+	ss := SimpleStruct{
+		Time: time.Time{},
+	}
+	fmt.Println(ss)
+	fmt.Println(ss.Time.Unix())
+
+	cdc := amino.NewCodec()
+	bz := cdc.MustMarshalBinaryBare(ss)
+	fmt.Println(bz)
+
+	var ss2 SimpleStruct
+	cdc.MustUnmarshalBinaryBare(bz, &ss2)
+	fmt.Println(ss2)
+	require.Equal(t, ss, ss2)
 }

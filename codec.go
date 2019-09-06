@@ -60,6 +60,10 @@ type TypeInfo struct {
 	StructInfo
 }
 
+type marshalInfo struct {
+
+}
+
 type InterfaceInfo struct {
 	Priority     []DisfixBytes               // Disfix priority.
 	Implementers map[PrefixBytes][]*TypeInfo // Mutated over time.
@@ -446,8 +450,9 @@ func (cdc *Codec) parseStructInfo(rt reflect.Type) (sinfo StructInfo) {
 		panic("should not happen")
 	}
 
-	var infos = make([]FieldInfo, 0, rt.NumField())
-	for i := 0; i < rt.NumField(); i++ {
+	nFields := rt.NumField()
+	var infos = make([]FieldInfo, 0, nFields)
+	for i := 0; i < nFields; i++ {
 		var field = rt.Field(i)
 		var ftype = field.Type
 		var unpackedList = false
@@ -605,8 +610,7 @@ func (cdc *Codec) newTypeInfoFromRegisteredConcreteType(rt reflect.Type, pointer
 	info.ConcreteInfo.Registered = true
 	info.ConcreteInfo.PointerPreferred = pointerPreferred
 	info.ConcreteInfo.Name = name
-	info.ConcreteInfo.Disamb = nameToDisamb(name)
-	info.ConcreteInfo.Prefix = nameToPrefix(name)
+	info.ConcreteInfo.Disamb, info.ConcreteInfo.Prefix = nameToDisfix(name)
 	if copts != nil {
 		info.ConcreteOptions = *copts
 	}
